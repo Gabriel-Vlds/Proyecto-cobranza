@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CobranzaPro – Pagos Recurrentes</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ===== Mobile sidebar overlay ===== -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<div class="app-layout">
+
+  <!-- ===== Sidebar ===== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">💳</div>
+      <div>
+        <span>CobranzaPro</span>
+        <span class="logo-sub">Pagos Recurrentes</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-label">Principal</div>
+      <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+        <span class="nav-icon">📊</span> Dashboard
+      </div>
+      <div class="nav-item" data-page="clientes" onclick="navigate('clientes')">
+        <span class="nav-icon">👥</span> Clientes
+      </div>
+      <div class="nav-item" data-page="historial" onclick="navigate('historial')">
+        <span class="nav-icon">🧾</span> Historial de Pagos
+      </div>
+
+      <div class="nav-label" style="margin-top:12px">Configuración</div>
+      <div class="nav-item" data-page="ajustes" onclick="navigate('ajustes')">
+        <span class="nav-icon">⚙️</span> Ajustes
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <p>v1.0.0 &copy; 2026 CobranzaPro</p>
+    </div>
+  </aside>
+
+  <!-- ===== Main ===== -->
+  <div class="main-content">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Menú">☰</button>
+        <span class="page-title" id="pageTitle">Dashboard</span>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-date" id="topbarDate"></span>
+        <button class="btn-simulate" onclick="runSimulation()" title="Procesar cobros del día">
+          ▶ Procesar Cobros
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== DASHBOARD ===== -->
+    <section class="page-section active" id="page-dashboard">
+      <!-- Summary -->
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-icon blue">👥</div>
+          <div class="summary-body">
+            <div class="summary-label">Clientes Activos</div>
+            <div class="summary-value" id="stat-clients">0</div>
+            <div class="summary-sub">suscripciones vigentes</div>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-icon green">✅</div>
+          <div class="summary-body">
+            <div class="summary-label">Cobrado (total)</div>
+            <div class="summary-value" id="stat-collected">$0</div>
+            <div class="summary-sub">pagos exitosos</div>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-icon red">❌</div>
+          <div class="summary-body">
+            <div class="summary-label">Cobros Fallidos</div>
+            <div class="summary-value" id="stat-failed">0</div>
+            <div class="summary-sub">requieren atención</div>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-icon amber">⏰</div>
+          <div class="summary-body">
+            <div class="summary-label">Cobros Hoy</div>
+            <div class="summary-value" id="stat-today">0</div>
+            <div class="summary-sub">pendientes de procesar</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Subscriptions -->
+      <div class="panel">
+        <div style="padding:16px 20px; border-bottom:1px solid var(--gray-100);">
+          <div class="section-header" style="margin:0">
+            <span class="section-title">Suscripciones Recientes</span>
+            <button class="btn btn-primary btn-sm" onclick="openClientModal()">+ Nuevo Cliente</button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table id="dashboard-table">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Tarjeta</th>
+                <th>Monto</th>
+                <th>Frecuencia</th>
+                <th>Próximo Cobro</th>
+                <th>Estado</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="dashboard-tbody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="dashboard-empty" style="display:none">
+          <div class="empty-icon">💳</div>
+          <p>Sin suscripciones. <strong onclick="openClientModal()" style="cursor:pointer;color:var(--primary)">Agrega un cliente</strong> para comenzar.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CLIENTES ===== -->
+    <section class="page-section" id="page-clientes">
+      <div class="section-header" style="margin-bottom:16px">
+        <div class="filter-bar">
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchClients" placeholder="Buscar cliente…" oninput="renderClients()" />
+          </div>
+          <select id="filterStatus" onchange="renderClients()" style="width:auto;min-width:140px">
+            <option value="">Todos los estados</option>
+            <option value="activo">Activo</option>
+            <option value="pausado">Pausado</option>
+            <option value="fallido">Fallido</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="openClientModal()">+ Agregar Cliente</button>
+      </div>
+
+      <div class="panel">
+        <div class="table-wrapper">
+          <table id="clients-table">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Tarjeta</th>
+                <th>Monto</th>
+                <th>Frecuencia</th>
+                <th>Próximo Cobro</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="clients-tbody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="clients-empty" style="display:none">
+          <div class="empty-icon">👥</div>
+          <p>No se encontraron clientes.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== HISTORIAL ===== -->
+    <section class="page-section" id="page-historial">
+      <div class="history-filter">
+        <button class="filter-chip active" data-filter="all" onclick="setHistoryFilter('all',this)">Todos</button>
+        <button class="filter-chip" data-filter="exitoso" onclick="setHistoryFilter('exitoso',this)">✅ Exitosos</button>
+        <button class="filter-chip" data-filter="fallido" onclick="setHistoryFilter('fallido',this)">❌ Fallidos</button>
+      </div>
+
+      <div class="panel">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha y Hora</th>
+                <th>Cliente</th>
+                <th>Tarjeta</th>
+                <th>Monto</th>
+                <th>Resultado</th>
+                <th>Mensaje</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="history-empty" style="display:none">
+          <div class="empty-icon">🧾</div>
+          <p>No hay transacciones registradas aún.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== AJUSTES ===== -->
+    <section class="page-section" id="page-ajustes">
+      <div class="settings-grid">
+        <div class="settings-card">
+          <h4>⚙️ Configuración General</h4>
+          <div class="form-group">
+            <label>Nombre del Negocio</label>
+            <input type="text" id="cfg-business" placeholder="Mi Empresa S.A. de C.V." />
+          </div>
+          <div class="form-group">
+            <label>Moneda</label>
+            <select id="cfg-currency">
+              <option value="MXN">MXN – Peso Mexicano</option>
+              <option value="USD">USD – Dólar Americano</option>
+              <option value="EUR">EUR – Euro</option>
+              <option value="COP">COP – Peso Colombiano</option>
+              <option value="ARS">ARS – Peso Argentino</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Zona Horaria</label>
+            <select id="cfg-timezone">
+              <option value="America/Mexico_City">Ciudad de México (UTC-6)</option>
+              <option value="America/Bogota">Bogotá (UTC-5)</option>
+              <option value="America/Buenos_Aires">Buenos Aires (UTC-3)</option>
+              <option value="America/New_York">Nueva York (UTC-5)</option>
+              <option value="Europe/Madrid">Madrid (UTC+1)</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" style="margin-top:8px" onclick="saveSettings()">Guardar Cambios</button>
+        </div>
+
+        <div class="settings-card">
+          <h4>🔁 Reintentos Automáticos</h4>
+          <div class="form-group">
+            <label>Máximo de reintentos por cobro fallido</label>
+            <select id="cfg-retries">
+              <option value="1">1 intento</option>
+              <option value="2">2 intentos</option>
+              <option value="3" selected>3 intentos</option>
+              <option value="5">5 intentos</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Días entre reintentos</label>
+            <select id="cfg-retry-days">
+              <option value="1">1 día</option>
+              <option value="2" selected>2 días</option>
+              <option value="3">3 días</option>
+              <option value="7">7 días</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Tasa de éxito simulada (%)</label>
+            <input type="number" id="cfg-success-rate" min="0" max="100" value="80" />
+          </div>
+          <button class="btn btn-primary" style="margin-top:8px" onclick="saveSettings()">Guardar Cambios</button>
+        </div>
+
+        <div class="settings-card" style="grid-column:1/-1">
+          <h4>🗑️ Datos</h4>
+          <p style="font-size:13px;color:var(--gray-500);margin-bottom:12px">
+            Estas acciones son irreversibles. Úsalas con cuidado.
+          </p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-outline btn-sm" onclick="exportData()">📤 Exportar JSON</button>
+            <button class="btn btn-danger btn-sm" onclick="clearHistory()">🗑 Borrar Historial</button>
+            <button class="btn btn-danger btn-sm" onclick="clearAll()">⚠️ Borrar Todo</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /main-content -->
+</div><!-- /app-layout -->
+
+<!-- ===== MODAL: Add/Edit Client ===== -->
+<div class="modal-backdrop" id="clientModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-header">
+      <h3 id="modalTitle">Nuevo Cliente</h3>
+      <button class="modal-close" onclick="closeClientModal()" aria-label="Cerrar">&times;</button>
+    </div>
+    <div class="modal-body">
+      <!-- Card Preview -->
+      <div class="card-preview">
+        <div class="card-preview-number" id="previewNumber">•••• •••• •••• ••••</div>
+        <div class="card-preview-row">
+          <div>
+            <div class="card-preview-label">Titular</div>
+            <div id="previewName">NOMBRE APELLIDO</div>
+          </div>
+          <div>
+            <div class="card-preview-label">Vence</div>
+            <div id="previewExpiry">MM/AA</div>
+          </div>
+        </div>
+      </div>
+
+      <form id="clientForm" novalidate onsubmit="return false">
+        <input type="hidden" id="editId" value="" />
+        <div class="form-grid">
+          <!-- Personal info -->
+          <div class="form-group">
+            <label for="f-name">Nombre *</label>
+            <input type="text" id="f-name" placeholder="Juan García" autocomplete="off"
+                   oninput="updatePreview()" />
+            <span class="field-error" id="err-name">Ingresa el nombre completo.</span>
+          </div>
+          <div class="form-group">
+            <label for="f-email">Correo electrónico *</label>
+            <input type="email" id="f-email" placeholder="juan@email.com" autocomplete="off" />
+            <span class="field-error" id="err-email">Ingresa un correo válido.</span>
+          </div>
+          <!-- Card info -->
+          <div class="form-group full">
+            <label for="f-card">Número de Tarjeta *</label>
+            <input type="text" id="f-card" placeholder="0000 0000 0000 0000"
+                   maxlength="19" oninput="formatCard(this); updatePreview()" autocomplete="off" />
+            <span class="field-error" id="err-card">Ingresa un número de tarjeta válido (16 dígitos).</span>
+          </div>
+          <div class="form-group">
+            <label for="f-expiry">Vencimiento (MM/AA) *</label>
+            <input type="text" id="f-expiry" placeholder="12/27" maxlength="5"
+                   oninput="formatExpiry(this); updatePreview()" autocomplete="off" />
+            <span class="field-error" id="err-expiry">Formato inválido (MM/AA).</span>
+          </div>
+          <div class="form-group">
+            <label for="f-cvv">CVV *</label>
+            <input type="text" id="f-cvv" placeholder="123" maxlength="4" autocomplete="off" />
+            <span class="field-error" id="err-cvv">CVV inválido.</span>
+          </div>
+          <!-- Billing config -->
+          <div class="form-group">
+            <label for="f-amount">Monto a cobrar *</label>
+            <input type="number" id="f-amount" placeholder="999.00" min="1" step="0.01" />
+            <span class="field-error" id="err-amount">Ingresa un monto válido (mayor a 0).</span>
+          </div>
+          <div class="form-group">
+            <label for="f-frequency">Frecuencia *</label>
+            <select id="f-frequency">
+              <option value="diario">Diario</option>
+              <option value="semanal">Semanal</option>
+              <option value="quincenal">Quincenal</option>
+              <option value="mensual" selected>Mensual</option>
+              <option value="bimestral">Bimestral</option>
+              <option value="trimestral">Trimestral</option>
+              <option value="anual">Anual</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label for="f-next">Fecha primer cobro *</label>
+            <input type="date" id="f-next" />
+            <span class="field-error" id="err-next">Selecciona la fecha del primer cobro.</span>
+          </div>
+          <div class="form-group full">
+            <label for="f-notes">Notas (opcional)</label>
+            <input type="text" id="f-notes" placeholder="Membresía Premium, Plan Pro…" />
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeClientModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveClient()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Toast container ===== -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
