@@ -10,6 +10,7 @@
 const STORAGE_CLIENTS  = 'cp_clients';
 const STORAGE_HISTORY  = 'cp_history';
 const STORAGE_SETTINGS = 'cp_settings';
+const MASKED_CVV       = '•••';
 
 const FREQUENCY_DAYS = {
   diario:      1,
@@ -346,7 +347,7 @@ function openClientModal(id) {
     document.getElementById('f-email').value     = c.email;
     document.getElementById('f-card').value      = c.cardNumber;
     document.getElementById('f-expiry').value    = c.expiry;
-    document.getElementById('f-cvv').value       = '•••';
+    document.getElementById('f-cvv').value       = MASKED_CVV;
     document.getElementById('f-amount').value    = c.amount;
     document.getElementById('f-frequency').value = c.frequency;
     document.getElementById('f-next').value      = c.nextCharge;
@@ -443,11 +444,12 @@ function validateClient() {
     showError('f-email', 'err-email'); valid = false;
   }
 
-  // Allow masked CVV when editing
-  const isMaskedCVV = editId && cvv === '•••';
-  if (!isMaskedCVV && (card.length !== 16)) { showError('f-card', 'err-card'); valid = false; }
+  if (card.length !== 16) { showError('f-card', 'err-card'); valid = false; }
 
-  if (!editId || cvv !== '•••') {
+  // Allow masked CVV when editing
+  const isMaskedCVV = editId && cvv === MASKED_CVV;
+
+  if (!editId || cvv !== MASKED_CVV) {
     if (!/^\d{2}\/\d{2}$/.test(expiry)) { showError('f-expiry', 'err-expiry'); valid = false; }
   }
 
@@ -492,8 +494,8 @@ function saveClient() {
         nextCharge: next,
         notes,
         // Only update card/cvv if not masked
-        cardNumber: cvv === '•••' ? clients[idx].cardNumber : card,
-        cvvHash:    cvv === '•••' ? clients[idx].cvvHash : hashCVV(cvv),
+        cardNumber: cvv === MASKED_CVV ? clients[idx].cardNumber : card,
+        cvvHash:    cvv === MASKED_CVV ? clients[idx].cvvHash : hashCVV(cvv),
       };
       toast('Cliente actualizado correctamente.', 'success');
     }
@@ -667,7 +669,9 @@ function toast(msg, type = '') {
   const container = document.getElementById('toastContainer');
   const el = document.createElement('div');
   el.className = `toast${type ? ' ' + type : ''}`;
-  el.innerHTML = `<span>${msg}</span>`;
+  const span = document.createElement('span');
+  span.textContent = msg;
+  el.appendChild(span);
   container.appendChild(el);
 
   setTimeout(() => {
@@ -760,7 +764,7 @@ function hashCVV(cvv) {
       name: 'Sofía Herrera Vega',
       email: 'sofia.h@gmail.com',
       cardNumber: '4012888888881881',
-      expiry: '11/25',
+      expiry: '11/27',
       amount: 149,
       frequency: 'mensual',
       nextCharge: addDays(today, -3),
