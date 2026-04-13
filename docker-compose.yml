@@ -1,0 +1,44 @@
+services:
+
+  # App web con nginx
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cobranzapro-web
+    ports:
+      - "80:80"
+    volumes:
+      - nginx-logs:/var/log/nginx
+    networks:
+      - cobranza-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Monitor de métricas para CloudWatch
+  monitor:
+    image: nginx/nginx-prometheus-exporter:latest
+    container_name: cobranzapro-monitor
+    command:
+      - '--nginx.scrape-uri=http://web/stub_status'
+    ports:
+      - "9113:9113"
+    networks:
+      - cobranza-net
+    depends_on:
+      - web
+    restart: unless-stopped
+
+# Volumen para guardar logs de nginx
+volumes:
+  nginx-logs:
+    driver: local
+
+# Red interna entre los dos servicios
+networks:
+  cobranza-net:
+    driver: bridge

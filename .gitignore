@@ -1,0 +1,18 @@
+# Logs
+*.log
+reporte_salud.txt
+
+# Variables de entorno
+.env
+*.env
+
+# Archivos del sistema
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Docker
+.dockerignore
