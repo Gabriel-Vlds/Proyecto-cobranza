@@ -1,0 +1,104 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Infraestructura CobranzaPro - Soluciones Tecnologicas del Futuro
+
+Parameters:
+  NombreProyecto:
+    Type: String
+    Default: CobranzaPro
+    Description: Nombre del proyecto
+
+Resources:
+
+  # Security Group para la instancia EC2
+  SecurityGroupWeb:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Permite HTTP, HTTPS y SSH
+      VpcId: vpc-0997658d67763fe38
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${NombreProyecto}-sg-web"
+        - Key: Proyecto
+          Value: !Ref NombreProyecto
+
+  # Instancia EC2 para la app
+  InstanciaApp:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-0c02fb55956c7d316
+      SubnetId: subnet-03bc18b25b57a0eb0
+      SecurityGroupIds:
+        - !Ref SecurityGroupWeb
+      IamInstanceProfile: LabInstanceProfile
+      Tags:
+        - Key: Name
+          Value: !Sub "${NombreProyecto}-app"
+        - Key: Proyecto
+          Value: !Ref NombreProyecto
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y docker git
+          systemctl start docker
+          systemctl enable docker
+
+  # Bucket S3 para almacenamiento
+  BucketStorage:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "cobranzapro-storage-${AWS::AccountId}"
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Name
+          Value: !Sub "${NombreProyecto}-storage"
+        - Key: Proyecto
+          Value: !Ref NombreProyecto
+
+  # Bucket S3 para logs
+  BucketLogs:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "cobranzapro-logs-${AWS::AccountId}"
+      LifecycleConfiguration:
+        Rules:
+          - Id: EliminarLogsAntiguos
+            Status: Enabled
+            ExpirationInDays: 30
+      Tags:
+        - Key: Name
+          Value: !Sub "${NombreProyecto}-logs"
+        - Key: Proyecto
+          Value: !Ref NombreProyecto
+
+Outputs:
+  InstanciaId:
+    Description: ID de la instancia EC2
+    Value: !Ref InstanciaApp
+
+  IPPublica:
+    Description: IP publica de la instancia
+    Value: !GetAtt InstanciaApp.PublicIp
+
+  BucketStorageNombre:
+    Description: Nombre del bucket de almacenamiento
+    Value: !Ref BucketStorage
+
+  BucketLogsNombre:
+    Description: Nombre del bucket de logs
+    Value: !Ref BucketLogs
